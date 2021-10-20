@@ -21,7 +21,11 @@ extension Reducer {
     action toLocalAction: CasePath<Action, LocalAction>,
     environment toLocalEnvironment: @escaping (Environment) -> LocalEnvironment
   ) -> Self {
-    combined(
+    let id = CancellationId(
+      id: UUID(),
+      name: String(describing: toLocalAction)
+    )
+    return combined(
       with: localReducer.optional(breakpointOnNil: breakpointOnNil).pullback(
         state: toLocalState,
         action: toLocalAction,
@@ -38,6 +42,9 @@ extension Reducer {
         }
 #endif
         return shouldCancel
+      },
+      canceller: { _ in
+        IdentifiedCanceller(id: id)
       }
     )
   }
