@@ -16,13 +16,14 @@ extension Reducer {
   ///   - runs: Closure used to determine if the another reducer should be run.
   ///   - cancelEffects: Closure used to determine if the effects returned by the another reducer should be cancelled.
   /// - Returns: A single, combined reducer.
-  public func combined(
+  func combined(
     with other: Reducer<State, Action, Environment>,
     runs: @escaping (State, Action) -> Bool,
-    cancelEffects: @escaping (inout State) -> Bool
+    cancelEffects: @escaping (inout State) -> Bool,
+    canceller: @escaping (State) -> EffectCancelling
   ) -> Self {
-    let otherEffectsId = EffectsId()
-    return Reducer { state, action, environment in
+    Reducer { state, action, environment in
+      let canceller = canceller(state)
       var effects: [Effect<Action, Never>] = []
 
       let shouldRunOtherReducer = runs(state, action)
@@ -30,7 +31,7 @@ extension Reducer {
         effects.append(
           other
             .run(&state, action, environment)
-            .cancellable(id: otherEffectsId)
+            .cancellable(with: canceller)
         )
       }
 
@@ -39,14 +40,10 @@ extension Reducer {
       let shouldCancelOtherEffects = cancelEffects(&state)
 
       if shouldCancelOtherEffects {
-        effects.append(.cancel(id: otherEffectsId))
+        effects.append(.cancel(with: canceller))
       }
 
       return .merge(effects)
     }
   }
-}
-
-private struct EffectsId: Hashable {
-  let id = UUID()
 }

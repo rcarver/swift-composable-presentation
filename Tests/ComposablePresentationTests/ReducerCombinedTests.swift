@@ -49,6 +49,9 @@ final class ReducerCombinedTests: XCTestCase {
       cancelEffects: { state in
         self.didCallCancelEffectsOnState.append(state)
         return self.shouldCancelChildEffect
+      },
+      canceller: { _ in
+          IdentifiedCanceller(id: CancellationId(id: 0, name: "test"))
       }
     )
   }

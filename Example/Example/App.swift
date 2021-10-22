@@ -106,10 +106,12 @@ struct TimerView: View {
 
 // MARK: - First component
 
+
+
 struct FirstState {
   var timer = TimerState()
-  var second: SecondState?
-  var sheet: SheetState?
+  @Presented var second: SecondState?
+  @Presented var sheet: SheetState?
 }
 
 enum FirstAction {
@@ -162,15 +164,15 @@ let firstReducer = Reducer<FirstState, FirstAction, Void>.combine(
     }
   }
 )
-.presents(
+.presented(
   secondReducer,
-  state: \.second,
+  state: \.$second,
   action: /FirstAction.second,
   environment: { () }
 )
-.presents(
+.presented(
   sheetReducer,
-  state: \.sheet,
+  state: \.$sheet,
   action: /FirstAction.sheet,
   environment: { () }
 )
@@ -223,7 +225,7 @@ struct SecondState {
   }
 
   var timer = TimerState()
-  var next: Next?
+  @Presented var next: Next?
 }
 
 enum SecondAction {
@@ -278,23 +280,23 @@ let secondReducer = Reducer<SecondState, SecondAction, Void>.combine(
     }
   }
 )
-.presents(
+.presented(
   thirdReducer.pullback(
     state: /SecondState.Next.third,
     action: /.self,
     environment: { $0 }
   ),
-  state: \.next,
+  state: \.$next,
   action: /SecondAction.third,
   environment: { () }
 )
-.presents(
+.presented(
   fourthReducer.pullback(
     state: /SecondState.Next.fourth,
     action: /.self,
     environment: { $0 }
   ),
-  state: \.next,
+  state: \.$next,
   action: /SecondAction.fourth,
   environment: { () }
 )
