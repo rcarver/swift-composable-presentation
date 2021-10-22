@@ -73,23 +73,27 @@ final class NonLockingScopedCanceller: EffectCancelling {
   private var cancellables = Set<AnyCancellable>()
 
   func register<P: Publisher>(_ publisher: P) -> Effect<P.Output, P.Failure> {
-    let downstream = PassthroughSubject<P.Output, P.Failure>()
-    let upstream = publisher.subscribe(downstream)
-    var cancellable: AnyCancellable!
+    Deferred { () -> AnyPublisher<P.Output, P.Failure> in
 
-    cancellable = AnyCancellable {
-      downstream.send(completion: .finished)
-      upstream.cancel()
-      self.cancellables.remove(cancellable)
+      let downstream = PassthroughSubject<P.Output, P.Failure>()
+      let upstream = publisher.subscribe(downstream)
+      var cancellable: AnyCancellable!
+
+      cancellable = AnyCancellable {
+        downstream.send(completion: .finished)
+        upstream.cancel()
+        self.cancellables.remove(cancellable)
+      }
+
+      self.cancellables.insert(cancellable)
+
+      return downstream.handleEvents(
+        receiveCompletion: { _ in cancellable.cancel() },
+        receiveCancel: cancellable.cancel
+      )
+        .eraseToAnyPublisher()
     }
-
-    cancellables.insert(cancellable)
-
-    return downstream.handleEvents(
-      receiveCompletion: { _ in cancellable.cancel() },
-      receiveCancel: cancellable.cancel
-    )
-      .eraseToEffect()
+    .eraseToEffect()
   }
 
   func cancel<NewOutput, NewFailure>(
