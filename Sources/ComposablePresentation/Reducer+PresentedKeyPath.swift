@@ -41,6 +41,9 @@ extension Reducer {
           state[keyPath: toLocalState].hadState = false
         }
         return shouldCancel
+      },
+      canceller: { state in
+          state[keyPath: toLocalState].canceller
       }
     )
   }
@@ -58,6 +61,12 @@ public struct Presented<State> {
 
   public init(wrappedValue: State?) {
     self.wrappedValue = wrappedValue
+    self.canceller = NonLockingScopedCanceller(
+      id: CancellationId(
+        id: UUID(),
+        name: String(describing: type(of: wrappedValue))
+      )
+    )
   }
 
   public var wrappedValue: State? {
@@ -72,6 +81,7 @@ public struct Presented<State> {
   }
 
   fileprivate var hadState: Bool = false
+  fileprivate var canceller: NonLockingScopedCanceller
 }
 
 fileprivate extension Presented {
